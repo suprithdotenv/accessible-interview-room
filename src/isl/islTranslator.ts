@@ -12,9 +12,11 @@ export type TranslationResult = {
 
 /** Specific high-accuracy mappings for common interview phrases in Indian Sign Language */
 const INTERVIEW_PRESET_MAP: Record<string, string[]> = {
-  'can you introduce yourself': ['YOU', 'NAME', 'TELL', 'WHAT'],
-  'please introduce yourself': ['PLEASE', 'YOU', 'NAME', 'TELL'],
-  'introduce yourself': ['YOU', 'NAME', 'TELL', 'WHAT'],
+  'what is your name': ['YOUR', 'NAME', 'WHAT'],
+  'what is your name?': ['YOUR', 'NAME', 'WHAT'],
+  'can you introduce yourself': ['YOU', 'INTRODUCE', 'YOURSELF'],
+  'please introduce yourself': ['PLEASE', 'YOU', 'INTRODUCE', 'YOURSELF'],
+  'introduce yourself': ['YOU', 'INTRODUCE', 'YOURSELF'],
   'tell me about yourself': ['YOU', 'NAME', 'TELL', 'I'],
   
   'tell me about your experience': ['YOUR', 'WORK', 'TIME', 'TELL', 'I'],
@@ -57,6 +59,14 @@ function normalizeForMatching(text: string): string {
     .trim()
 }
 
+/** Formats token lists into clean, readable English gloss words for human judges (no hyphens or underscores) */
+export function formatReadableGloss(tokens: string[]): string {
+  return tokens
+    .map((t) => t.replaceAll('-', '').replaceAll('_', ' ').trim().toUpperCase())
+    .filter(Boolean)
+    .join(' ')
+}
+
 /**
  * Translates spoken English text into ISL Gloss representation.
  * Prioritizes common interview phrases, and falls back to deterministic
@@ -81,9 +91,10 @@ export function translateEnglishToISL(text: string): TranslationResult {
   for (const [phrase, tokens] of Object.entries(INTERVIEW_PRESET_MAP)) {
     if (normalized === phrase || normalized.includes(phrase)) {
       const sanitized = sanitizeTokens(tokens)
+      const readableGloss = formatReadableGloss(tokens)
       return {
         tokens: sanitized,
-        glossText: sanitized.join(' '),
+        glossText: readableGloss,
         original: trimmed,
         fingerspelled: sanitized.filter((t) => t.includes('-')),
         directSigns: sanitized.filter((t) => SUPPORTED_TOKEN_SET.has(t)),
@@ -103,6 +114,7 @@ export function translateEnglishToISL(text: string): TranslationResult {
 
     // Coerce into avatar-supported format (known signs preserved, unknown words spelled)
     const sanitized = sanitizeTokens(rawTokens)
+    const readableGloss = formatReadableGloss(rawTokens)
 
     // Analyze tokens
     const fingerspelled: string[] = []
@@ -122,7 +134,7 @@ export function translateEnglishToISL(text: string): TranslationResult {
 
     return {
       tokens: sanitized,
-      glossText: sanitized.join(' '),
+      glossText: readableGloss,
       original: trimmed,
       fingerspelled,
       directSigns,
@@ -131,9 +143,10 @@ export function translateEnglishToISL(text: string): TranslationResult {
   } catch (error) {
     console.warn('[ISL Translator] Rule engine error, falling back to spelled words:', error)
     const fallback = sanitizeTokens(trimmed.toUpperCase().split(/\s+/))
+    const readableGloss = formatReadableGloss(trimmed.toUpperCase().split(/\s+/))
     return {
       tokens: fallback,
-      glossText: fallback.join(' '),
+      glossText: readableGloss,
       original: trimmed,
       fingerspelled: fallback.filter((t) => t.includes('-')),
       directSigns: fallback.filter((t) => SUPPORTED_TOKEN_SET.has(t)),

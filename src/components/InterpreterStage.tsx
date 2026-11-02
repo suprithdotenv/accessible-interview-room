@@ -5,7 +5,6 @@ import {
 } from '../avatar/AvatarPlayer'
 import type { SentenceQueueItem } from '../hooks/useSentenceQueue'
 import {
-  Sparkles,
   Maximize2,
   Minimize2,
   Gauge,
@@ -36,15 +35,14 @@ export function InterpreterStage({
   onToggleIsl,
   onSentenceComplete,
   onOpenGuide,
-  onResetQueue,
 }: InterpreterStageProps) {
   const [speed, setSpeed] = useState<number>(1.0)
   const [cameraView, setCameraView] = useState<'standard' | 'closeup' | 'wide'>('standard')
-  const [stopId, setStopId] = useState<number>(0)
-  const [resetId, setResetId] = useState<number>(0)
+  const [stopId] = useState<number>(0)
+  const [resetId] = useState<number>(0)
   const [avatarState, setAvatarState] = useState<AvatarState>('loading')
   const [currentSign, setCurrentSign] = useState<string | null>(null)
-  const [remainingSignsInSentence, setRemainingSignsInSentence] = useState<number>(0)
+  const [, setRemainingSignsInSentence] = useState<number>(0)
   const [isExpanded, setIsExpanded] = useState<boolean>(false)
 
   const cycleSpeed = () => {
@@ -64,12 +62,12 @@ export function InterpreterStage({
     setRemainingSignsInSentence(remaining)
   }, [])
 
-  // Partition queue items for status badges:
   const signingItem = queue.find((item) => item.status === 'signing')
-  const queuedItem = queue.find((item) => item.status === 'queued')
-  const waitingItems = queue.filter((item) => item.status === 'waiting')
-
   const isFingerspelling = currentSign ? currentSign.includes('-') : false
+
+  // Split readable ISL gloss into individual words for synchronized highlighting
+  const readableGloss = currentSentence?.glossText || ''
+  const glossWords = readableGloss ? readableGloss.split(/\s+/).filter(Boolean) : []
 
   // Header status badge
   const getHeaderStatusBadge = () => {
@@ -196,57 +194,89 @@ export function InterpreterStage({
         </div>
       </div>
 
-      {/* 2. DEDICATED FIXED INFORMATION AREA (NO OVERLAP ON AVATAR HEAD) */}
-      <div className="px-3.5 py-1.5 bg-[#18191c] border-b border-[#3c4043] flex items-center justify-between gap-3 text-xs shrink-0 min-h-[40px]">
-        {/* Left: Active English Sentence being signed */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#8ab4f8]" />
-            <span>Interpreting Sentence:</span>
+      {/* 2. DEDICATED ISL TRANSLATION & GLOSS PANEL (Clear English + ISL Gloss in Readable Words for Judges) */}
+      <div className="px-3.5 py-2.5 bg-[#18191c] border-b border-[#3c4043] flex flex-col gap-2 shrink-0">
+        {/* Row 1: Original Spoken English */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-[#1a73e8]/20 text-[#8ab4f8] border border-[#1a73e8]/40 shrink-0">
+              English
+            </span>
+            <p className="font-medium text-[#e8eaed] text-xs truncate">
+              {!isIslEnabled
+                ? 'ISL Interpreter disabled (Captions only)'
+                : currentSentence
+                ? `"${currentSentence.sentence}"`
+                : 'Standing by for host speech...'}
+            </p>
           </div>
-          <p className="font-medium text-[#e8eaed] text-xs truncate mt-0.5">
-            {!isIslEnabled
-              ? 'ISL Interpreter disabled (Captions only)'
-              : currentSentence
-              ? `"${currentSentence.sentence}"`
-              : 'Standing by for host speech...'}
-          </p>
+
+          {/* Real-time sign animation badge */}
+          {isIslEnabled && currentSign ? (
+            <div className="flex items-center gap-1.5 shrink-0 bg-[#28292c] border border-[#3c4043] px-2.5 py-0.5 rounded-lg text-[10px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34a853] animate-pulse" />
+              {isFingerspelling ? (
+                <span className="text-amber-400 font-semibold flex items-center gap-1">
+                  <SpellCheck className="w-3 h-3 text-amber-400" />
+                  Spelling:
+                </span>
+              ) : (
+                <span className="text-slate-400">Signing:</span>
+              )}
+              <span className="font-mono font-bold text-[#8ab4f8]">
+                {currentSign.replaceAll('_', ' ')}
+              </span>
+            </div>
+          ) : (
+            <div className="shrink-0 text-[10px] text-slate-500 italic">
+              {isIslEnabled ? 'Rest Pose' : 'Avatar Inactive'}
+            </div>
+          )}
         </div>
 
-        {/* Right: Active Sign & Fingerspelling Breakdown */}
-        {isIslEnabled && currentSign ? (
-          <div className="flex items-center gap-2 shrink-0 bg-[#28292c] border border-[#3c4043] px-3 py-1 rounded-xl shadow-2xs">
-            {isFingerspelling ? (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-amber-950/60 text-amber-300 border border-amber-800 flex items-center gap-1">
-                <SpellCheck className="w-3 h-3 text-amber-400" />
-                Fingerspelling
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-blue-950/70 text-blue-300 border border-blue-700 flex items-center gap-1">
-                <HandMetal className="w-3 h-3 text-[#8ab4f8]" />
-                ISL Sign
-              </span>
-            )}
+        {/* Row 2: ISL Gloss (Separately displayed in readable English words) */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-emerald-950/70 text-emerald-300 border border-emerald-700/60 shrink-0 flex items-center gap-1">
+            <HandMetal className="w-3 h-3 text-emerald-400" />
+            ISL Gloss
+          </span>
 
-            <span className="font-mono font-bold text-xs text-[#8ab4f8] tracking-wide">
-              {currentSign.replaceAll('_', ' ')}
+          {isIslEnabled && currentSentence ? (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {glossWords.map((word, idx) => {
+                const normalizedWord = word.toUpperCase()
+                const isWordActive =
+                  currentSign &&
+                  (currentSign.toUpperCase() === normalizedWord ||
+                    currentSign.replaceAll('-', '').toUpperCase() === normalizedWord ||
+                    currentSign.replaceAll('_', ' ').toUpperCase() === normalizedWord)
+
+                return (
+                  <span
+                    key={`${word}-${idx}`}
+                    className={`px-2 py-0.5 rounded-md text-xs font-bold font-mono tracking-wide transition-all ${
+                      isWordActive
+                        ? 'bg-[#1a73e8] text-white shadow-md shadow-blue-500/30 scale-105 border border-blue-400'
+                        : 'bg-[#28292c] text-[#e8eaed] border border-[#3c4043]'
+                    }`}
+                  >
+                    {word}
+                  </span>
+                )
+              })}
+            </div>
+          ) : (
+            <span className="text-xs text-slate-500 italic">
+              {isIslEnabled
+                ? 'Sign language gloss translation sequence will appear here...'
+                : 'Enable ISL above to view sign gloss translation'}
             </span>
-
-            {remainingSignsInSentence > 1 && (
-              <span className="text-[10px] font-mono text-slate-400">
-                ({remainingSignsInSentence - 1} left)
-              </span>
-            )}
-          </div>
-        ) : (
-          <div className="shrink-0 text-[11px] text-slate-400 italic">
-            {isIslEnabled ? 'Rest Pose' : 'Avatar Inactive'}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* 3. MAIN 3D AVATAR VIEWPORT (100% UNOBSTRUCTED SPACE FOR HEAD, CHEST & HANDS) */}
-      <div className="flex-1 w-full relative min-h-[200px] bg-[#13151b] flex items-center justify-center overflow-hidden">
+      {/* 3. MAIN 3D AVATAR VIEWPORT (Expanded with full vertical height, no queue box below) */}
+      <div className="flex-1 w-full relative min-h-[220px] bg-[#13151b] flex items-center justify-center overflow-hidden">
         <AvatarPlayer
           currentSentence={isIslEnabled ? currentSentence : null}
           model="default"
@@ -258,69 +288,6 @@ export function InterpreterStage({
           onStateChange={setAvatarState}
           onCurrentSignChange={handleCurrentSignChange}
         />
-      </div>
-
-      {/* 4. LOWER SECTION: Sequential Sentence Queue Status */}
-      <div className="p-3 bg-white border-t border-slate-100 flex flex-col gap-2 z-10 shrink-0">
-        <div className="bg-[#fafafa] border border-slate-200/90 rounded-xl p-2.5 flex flex-col gap-1.5">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between border-b border-slate-200/60 pb-1">
-            <span className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-blue-600" />
-              Sequential Sign Queue
-            </span>
-            <span className="font-mono text-[10px] text-slate-500">
-              {isIslEnabled ? `${queue.length} in queue` : 'Disabled'}
-            </span>
-          </div>
-
-          {!isIslEnabled ? (
-            <p className="text-xs text-slate-500 italic py-0.5">
-              Click "Enable ISL" above to begin translating the host's spoken English into ISL signs.
-            </p>
-          ) : queue.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-0.5">
-              Standing by for host's finalized speech...
-            </p>
-          ) : (
-            <div className="space-y-1.5 max-h-[70px] overflow-y-auto custom-scrollbar">
-              {/* 1. SIGNING Status */}
-              {signingItem && (
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
-                    SIGNING
-                  </span>
-                  <span className="text-xs font-semibold text-slate-800 truncate">
-                    {signingItem.sentence}
-                  </span>
-                </div>
-              )}
-
-              {/* 2. QUEUED Status */}
-              {queuedItem && (
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                    QUEUED
-                  </span>
-                  <span className="text-xs font-medium text-slate-700 truncate">
-                    {queuedItem.sentence}
-                  </span>
-                </div>
-              )}
-
-              {/* 3. WAITING Status */}
-              {waitingItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                    WAITING
-                  </span>
-                  <span className="text-xs text-slate-600 truncate">
-                    {item.sentence}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   )

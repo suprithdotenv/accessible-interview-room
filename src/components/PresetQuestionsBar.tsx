@@ -18,8 +18,13 @@ type PresetQuestionsBarProps = {
 const PRESET_INTERVIEW_QUESTIONS = [
   {
     category: 'Core',
+    text: 'What is your name?',
+    gloss: 'YOUR NAME WHAT',
+  },
+  {
+    category: 'Core',
     text: 'Can you introduce yourself?',
-    gloss: 'YOU NAME TELL WHAT',
+    gloss: 'YOU INTRODUCE YOURSELF',
   },
   {
     category: 'Core',

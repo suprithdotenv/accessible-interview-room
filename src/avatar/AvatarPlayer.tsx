@@ -130,14 +130,14 @@ export function AvatarPlayer({
     if (!camera) return
     if (cameraView === 'closeup') {
       camera.position.set(0, 0.44, 1.55)
-      camera.lookAt(0, 0.42, 0)
+      camera.lookAt(0, 0.44, 0)
     } else if (cameraView === 'wide') {
-      camera.position.set(0, 0.40, 2.3)
-      camera.lookAt(0, 0.35, 0)
+      camera.position.set(0, 0.36, 2.2)
+      camera.lookAt(0, 0.36, 0)
     } else {
-      // Standard framing: waist-up, upper torso, head, and prominent enlarged hands
-      camera.position.set(0, 0.38, 1.82)
-      camera.lookAt(0, 0.38, 0)
+      // Standard framing: waist-up, upper torso, head, and prominent enlarged hands centered
+      camera.position.set(0, 0.36, 1.76)
+      camera.lookAt(0, 0.36, 0)
     }
     camera.updateProjectionMatrix()
     needsRenderRef.current = true
@@ -244,14 +244,17 @@ export function AvatarPlayer({
 
     // Camera setup: 34 deg FOV, waist-up framing with prominent upper body and hands
     const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 1000)
-    camera.position.set(0, 0.38, 1.82)
-    camera.lookAt(0, 0.38, 0)
+    camera.position.set(0, 0.36, 1.76)
+    camera.lookAt(0, 0.36, 0)
     cameraRef.current = camera
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.domElement.style.width = '100%'
+    renderer.domElement.style.height = '100%'
+    renderer.domElement.style.display = 'block'
     mount.appendChild(renderer.domElement)
 
     // Lighting setup: Professional studio 3-point lighting with high-contrast rim light against dark stage
@@ -280,8 +283,10 @@ export function AvatarPlayer({
       if (!width || !height) return
       camera.aspect = width / height
       camera.updateProjectionMatrix()
-      camera.lookAt(0, 0.4, 0)
-      renderer.setSize(width, height, false)
+      camera.lookAt(0, 0.36, 0)
+      renderer.setSize(width, height, true)
+      renderer.domElement.style.width = '100%'
+      renderer.domElement.style.height = '100%'
       needsRenderRef.current = true
     }
 
@@ -442,7 +447,7 @@ export function AvatarPlayer({
 
   return (
     <div className="relative w-full h-full min-h-0 overflow-hidden bg-[#13151b] flex items-center justify-center">
-      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      <div ref={mountRef} className="w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing" />
       {loadError && (
         <div className="absolute inset-0 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm text-center">
           <div className="max-w-sm p-4 bg-red-950/80 border border-red-800 rounded-xl text-red-200">

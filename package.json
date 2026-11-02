@@ -33,5 +33,9 @@
     "oxlint": "^1.89.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "^1.2.16",
+    "@tailwindcss/oxide-linux-x64-gnu": "^4.3.3"
   }
 }
